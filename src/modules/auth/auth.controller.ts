@@ -141,6 +141,29 @@ export const googleCallback = (
   )(req, res, next);
 };
 
+export const linkGoogleCallback = (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  passport.authenticate(
+    "googleLink",
+    {
+      failWithError: false,
+      session: false,
+    },
+    (err: any, user: any, info: any, status: any) => {
+      if (!user) {
+        return res.redirect(`${FRONTEND_URL}/login?error=${err.message}`);
+      }
+
+      console.log(user);
+
+      res.redirect(`${FRONTEND_URL}/callback/link?code=${user._id}`);
+    },
+  )(req, res, next);
+};
+
 export const getAccessToken = (
   req: Request,
   res: Response,

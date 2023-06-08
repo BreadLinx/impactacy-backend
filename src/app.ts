@@ -7,12 +7,15 @@ import mongoose from "mongoose";
 import { NotFoundError } from "errors/notFoundError";
 import handleErrors from "middlewares/handleErrors";
 import { errors } from "celebrate";
-
 import AuthRoutes from "modules/auth/auth.routes";
 import ActivityRoutes from "modules/activities/activities.routes";
 import UsersRoutes from "modules/users/users.routes";
+import AccountsRoutes from "modules/accounts/accounts.routes";
 
-import { googleStrategy } from "modules/passport/strategies/google-strategy";
+import {
+  googleStrategy,
+  linkGoogleStrategy,
+} from "modules/passport/strategies/google-strategy";
 
 dotenv.config();
 
@@ -44,11 +47,13 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use(passport.initialize());
-passport.use(googleStrategy);
+passport.use("google", googleStrategy);
+passport.use("googleLink", linkGoogleStrategy);
 
 app.use(AuthRoutes);
 app.use(ActivityRoutes);
 app.use(UsersRoutes);
+app.use(AccountsRoutes);
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   next(new NotFoundError("Requested resource was not found"));

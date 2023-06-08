@@ -4,6 +4,7 @@ import User, { UserDoc } from "modules/users/entities/user.entity";
 import Account, { AccountType } from "modules/accounts/entities/account.entity";
 import { UnauthorizedError } from "errors/unauthorizedError";
 import dotenv from "dotenv";
+import { ConflictError } from "errors/conflictError";
 dotenv.config();
 
 const {
@@ -17,8 +18,10 @@ export const googleStrategy = new passportGoogle.Strategy(
     clientID: GOOGLE_CLIENT_ID,
     clientSecret: GOOGLE_CLIENT_SECRET,
     callbackURL: `${BACKEND_URL}/callback/google`,
+    passReqToCallback: true,
+    scope: ["profile", "email"],
   },
-  async (accessToken, refreshToken, profile, done) => {
+  async (req, accessToken, refreshToken, profile, done) => {
     try {
       const account = await Account.findOne({
         accountId: profile._json.sub,
@@ -80,6 +83,38 @@ export const googleStrategy = new passportGoogle.Strategy(
     } catch (err: any) {
       await session.abortTransaction();
       session.endSession();
+      done(err);
+    }
+  },
+);
+
+export const linkGoogleStrategy = new passportGoogle.Strategy(
+  {
+    clientID: GOOGLE_CLIENT_ID,
+    clientSecret: GOOGLE_CLIENT_SECRET,
+    callbackURL: `${BACKEND_URL}/callback/link/google`,
+    passReqToCallback: true,
+    scope: ["profile", "email"],
+  },
+  async (req, accessToken, refreshToken, profile, done) => {
+    try {
+      const account = await Account.findOne({
+        accountId: profile._json.sub,
+      });
+
+      if (account) {
+        throw new ConflictError("Account already exists");
+      }
+
+      const newAccount = await Account.create({
+        accountId: profile._json.sub,
+        type: AccountType.GOOGLE,
+        userId: "6481f9646aae47319bd727e3", // imitation of _id
+        email: profile._json.email,
+      });
+
+      done(null, newAccount);
+    } catch (err: any) {
       done(err);
     }
   },
