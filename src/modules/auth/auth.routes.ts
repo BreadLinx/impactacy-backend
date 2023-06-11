@@ -8,6 +8,8 @@ import {
   signIn,
   signOut,
   linkGoogleCallback,
+  setPassword,
+  changePassword,
 } from "modules/auth/auth.controller";
 import checkAuth from "middlewares/auth";
 import {
@@ -44,5 +46,8 @@ router.get(
 router.get("/callback/link/google", linkGoogleCallback);
 
 router.get("/auth/token", getAccessToken);
+
+router.post("/password", checkAuth, setPassword);
+router.post("/password/change", checkAuth, changePassword);
 
 export default router;

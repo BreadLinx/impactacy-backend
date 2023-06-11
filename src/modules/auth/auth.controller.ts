@@ -1,4 +1,4 @@
-import express, { NextFunction, Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import passport from "passport";
 import jwt from "jsonwebtoken";
 import { tempCodes } from "modules/auth/auth.routes";
@@ -8,6 +8,8 @@ import { CreateUserDto } from "modules/auth/dto/create-user.dto";
 import { SignInDto } from "modules/auth/dto/sign-in.dto";
 import bcrypt from "bcrypt";
 import { UnauthorizedError } from "errors/unauthorizedError";
+import { getUserByIdWithPassword } from "modules/users/users.service";
+import { BadRequestError } from "errors/badRequestError";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -187,4 +189,66 @@ export const getAccessToken = (
       maxAge: 30 * 24 * 60 * 60 * 1000,
     })
     .json({ success: true, message: "Token was set successfully" });
+};
+
+export const setPassword = async (
+  req: Request<{}, {}, { password: string }>,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { _id } = req.user;
+    const user = await getUserByIdWithPassword(_id);
+
+    if (user?.password) {
+      throw new BadRequestError("Password is already set");
+    }
+
+    const { password } = req.body;
+
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    await User.findByIdAndUpdate(_id, {
+      password: passwordHash,
+    });
+
+    res.json({ message: "Password was successfully set" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const changePassword = async (
+  req: Request<{}, {}, { password: string; newPassword: string }>,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const { _id } = req.user;
+    const { password, newPassword } = req.body;
+
+    if (password === newPassword) {
+      throw new BadRequestError("New password must be different");
+    }
+
+    const user = await getUserByIdWithPassword(_id);
+
+    if (!user?.password) {
+      throw new BadRequestError("Password is not set");
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      throw new BadRequestError("Incorrect password");
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+
+    await User.findByIdAndUpdate(_id, { password: passwordHash });
+
+    res.json({ message: "Password was successfully changed" });
+  } catch (err) {
+    next(err);
+  }
 };

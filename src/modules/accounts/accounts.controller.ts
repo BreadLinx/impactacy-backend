@@ -6,7 +6,8 @@ import Account from "modules/accounts/entities/account.entity";
 import User from "modules/users/entities/user.entity";
 import { NotFoundError } from "errors/notFoundError";
 import { ForbiddenError } from "errors/forbiddenError";
-import { ObjectId } from "mongoose";
+import { getUserByIdWithPassword } from "modules/users/users.service";
+import { BadRequestError } from "errors/badRequestError";
 
 export const create = async (
   req: Request<{}, {}, CreateAccountDto>,
@@ -61,6 +62,10 @@ export const getAccounts = async (
 
     const accounts = await Account.find({ userId: _id });
 
+    if (accounts.length === 0) {
+      throw new NotFoundError("Accounts not found");
+    }
+
     res.json(accounts);
   } catch (err) {
     next(err);
@@ -77,7 +82,6 @@ export const patchMyAccount = async (
     const { accountId } = req.params;
 
     const account = await Account.findByIdAndUpdate(accountId, { userId: _id });
-    console.log(account);
 
     res.json(account);
   } catch (err) {
@@ -94,6 +98,14 @@ export const deleteAccount = async (
     const { _id } = req.user;
     const { accountId } = req.params;
 
+    const user = await getUserByIdWithPassword(_id);
+
+    if (!user?.password) {
+      throw new BadRequestError(
+        "You can`t unlink social account until you set password on your account",
+      );
+    }
+
     const account = (await Account.findById(accountId))?.toJSON();
 
     if (!account) {
@@ -104,9 +116,9 @@ export const deleteAccount = async (
       throw new ForbiddenError();
     }
 
-    const result = await Account.findByIdAndDelete(accountId);
+    await Account.findByIdAndDelete(accountId);
 
-    res.json(result);
+    res.json({ message: "Account deleted successfully" });
   } catch (err) {
     next(err);
   }
