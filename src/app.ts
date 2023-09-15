@@ -7,22 +7,14 @@ import mongoose from "mongoose";
 import { NotFoundError } from "errors/notFoundError";
 import handleErrors from "middlewares/handleErrors";
 import { errors } from "celebrate";
-import AuthRoutes from "modules/auth/auth.routes";
-import ActivityRoutes from "modules/activities/activities.routes";
-import UsersRoutes from "modules/users/users.routes";
-import AccountsRoutes from "modules/accounts/accounts.routes";
-
-import {
-  googleStrategy,
-  linkGoogleStrategy,
-} from "modules/passport/strategies/google-strategy";
+import GoodsRouter from "modules/goods/goods.routes";
 
 dotenv.config();
 
 const {
   SERVER_PORT = 5000,
-  DATABASE_URL = "mongodb://Platons-OMEN:27017/impactacy?replicaSet=rs",
-  FRONTEND_URL = "http://localhost:3000",
+  DATABASE_URL = "mongodb+srv://platonbrazhnikov123:0EWrVKLwQq9wVqet@cluster.196jbyx.mongodb.net",
+  FRONTEND_URL = "http://localhost:5173",
 } = process.env;
 
 const app = express();
@@ -47,13 +39,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use(passport.initialize());
-passport.use("google", googleStrategy);
-passport.use("googleLink", linkGoogleStrategy);
 
-app.use(AuthRoutes);
-app.use(ActivityRoutes);
-app.use(UsersRoutes);
-app.use(AccountsRoutes);
+app.use(GoodsRouter);
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   next(new NotFoundError("Requested resource was not found"));
